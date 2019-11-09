@@ -1,0 +1,56 @@
+---
+title: "Battery Capacity of My Lenovo X1 Carbon"
+author: "by Will Simmons"
+date: "11/9/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+library(tidyverse)
+library(readxl)
+```
+
+
+This report details the battery capacity of my Lenovo X1 Carbon (6th generation) over its relatively short life thus far.
+
+I purchased this laptop in July 2018 prior to beginning a graduate program that fall. I fell in love with the computer, having been a Mac user for my entire adult life - its functionality, compatability with various statistical software, and incredible battery life. However, within three months of my one-year warranty's end in July 2019, my computer's battery capacity fell precipitously:
+
+```{r, echo = FALSE, warning = FALSE, fig.width = 9}
+battery = 
+  read_excel('./data/battery_report.xlsx') %>% 
+  janitor::clean_names() %>%
+  mutate(period2 = as.numeric(period),
+         period3 = as.Date(period2, origin = "1899-12-30"), 
+         period3 = ifelse(startsWith(period, '43'),
+                          as.character(period3),
+                          period),
+         period_start = str_remove(period3, ' - ....-..-..'),
+         period_start = as.Date(period_start),
+         full_charge_capacity = str_replace(full_charge_capacity, ' mWh', ''),
+         full_charge_capacity = str_replace(full_charge_capacity, ',', ''),
+         full_charge_capacity = as.numeric(full_charge_capacity),
+         design_capacity = str_replace(design_capacity, ' mWh', ''),
+         design_capacity = str_replace(design_capacity, ',', ''),
+         design_capacity = as.numeric(design_capacity),
+  ) %>% 
+  select(-period, -period2, period = period3) %>% 
+  pivot_longer(full_charge_capacity:design_capacity,
+               names_to = 'capacity_name',
+               values_to = 'capacity_mwh') %>% view
+
+battery %>% 
+  ggplot(aes(x = period_start, y = capacity_mwh, color = capacity_name)) +
+  geom_line(size = 2) +
+  geom_vline(xintercept = as.Date('2019-06-10'), color = 'dark red', size = 1) +
+  scale_color_viridis_d() +
+  theme_minimal() +
+  ylim(c(0, 70000)) +
+  labs(x = '\nDate',
+       y = 'Battery Capacity (mWh)\n',
+       title = 'Battery capacity over time\nJune 2018 to November 2019') +
+    theme(legend.position = 'bottom',
+          plot.title = element_text(hjust = 0.5)) 
+```
+
